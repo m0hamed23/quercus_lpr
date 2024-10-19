@@ -1,0 +1,123 @@
+﻿this is the camera protocol format:
+4.1.	Message format
+Messages will always have the same format. Bytes are ordered in all fields with the “little- endian” system.
+●	Stx (1 byte): Byte that marks the start of a frame (ASCII character 2).
+●	Unit Id (4 bytes): Identifier of the capture unit sending or receiving the message.
+●	Size (4 bytes): Total size of the message in bytes.
+●	Type (2 bytes): Type of message. All types of messages will be described further on.
+●	Version (2 bytes): Version of the message. For messages that have been improved (modifying them or adding information ), this field contains the version of the message.
+●	Id (4 bytes): Unique identifier of the conversation. The value will be the same for both the request and response messages. Thus, we can know whether the response obtained was the one expected or not. The value will be 1 for the first message sent by the units to the central system and it will be increased in twos for each new message. In the
+case of messages sent by the central system to the units, the first message will be 2 and all others will also be increased in twos.
+●	Message Data (variable): Specific data of each message.
+●	Bcc (1 byte): Xor of all bytes in the message from Stx to the last byte in the “Message data”.
+●	Etx (1 byte): Notes the end of the message (ASCII character 3).
+==============================================
+
+4.3.3.	LicenseInfo
+Provides information about the license number detection mechanism. The structure corresponds to the version 2.
+●	Type: 2
+●	Message Data:
+CarId (4 bytes)	TriggerId (4 bytes)	Timestamp (4 bytes)	TimestampUSec (4 bytes)	Detected Chars (40 bytes)	Qualities (40 bytes) GOk (1 byte)  Printable string ( 40 bytes)  Country (32 bytes)
+
+●	Car Id.: Unique identifier of the vehicle. Same one for the arrival or departure.
+●	Trigger Id.: Identifier of the software event that triggered the capture. Only applicable if the unit is operating in software mode. Otherwise, the value is -1.
+ 
+●	Timestamp: Instant when the image was obtained. The date and time are indicated as the seconds elapsed since 00:00 hours of the 1st of January 1970. It is the same format returned by a call to function time_t time (timer_t *timer) of standard ANSI C.
+●	TimestampUSec: microsecond when the image was captured.
+●	Detected Chars: List of characters detected. Special characters (not in ASCII table) are codified into UTF-8. Unused characters will have a zero value.
+●	Qualities: List of qualities of the characters detected. The value in the nth position determines the quality of the nth character detected (between 0 and 100).
+●	Grammar Ok (GO): Value 1 if the license number detected meets a known grammar standard, or 0 when it does not meet any of them.
+●	Printable String: License number, decorated with dashes and spaces. Special characters (not in ASCII table) are codified into UTF-8. The values not used will contain zeros. If the license number does not meet any known grammar standard, it will contain the same values as “DetectedChars”.
+●	Country: Name of the country or region for which the grammar standard was met. The characters not used will contain zeros. If no grammar standards are met, the whole field will contain zeros. Countries are spelled with the character(s) that the country uses to identify its license plates ( “UK” for united Kingdom, “F” for France, etc.).
+●	The previous message structure corresponds to version 2 of LicenseInfo message.
+==============================================
+
+4.4.4.	Trigger
+Image capture and processing request.
+Request
+●	Type: 67
+●	Message Data:
+●	Trigger Id.: Trigger identifier associated to the number plate detection. ( 4 bytes )
+Response
+ACK/NAK
+The meanings of the possible NAK error codes are:
+●	3: The operation is not allowed because the unit works in hardware mode or because it is not active.
+●	4: The unit is still capturing images from the previous request.
+==============================================
+
+4.4.5.	Status
+Obtains the status of the different unit components.
+Request
+●	Type: 68
+●	Message Data: No data field available.
+Response
+●	Type: 132
+●	Message Data:
+Actv (1 byte)	IO (1 byte)   Cam (1 byte)
+●	Active Status (Actv):
+	1: Unit is active.
+	0: Unit is not active.
+●	I/O Card Status (Ioc): Reserved for future uses, currently set to 0.
+●	Camera Status (Cam):
+	1: Camera status is correct.
+	0: Camera status is incorrect.
+==============================================
+
+4.4.8.	GetPicture
+Obtains the image of the last license plate detected.
+Request
+●	Type: 71
+●	Message Data:
+	Car Id.: Identifier of the vehicle from which we want to obtain an image. (4 bytes)
+Response
+●	Type: 135
+●	Message Data:
+RoiTop (2 bytes )	RoiLeft (2 bytes )	RoiBottom	(2 bytes ) RoiRight	(2 bytes ) ImageSize (4 bytes )	Image Data (Variable max 65000 bytes )
+●	ROI (RoiTop, RoiLeft, RoiBottom, RoiRight): Region Of Interest, top, left, bottom and right coordinates, respectively, of the image of the license plate.
+●	Image Size: Size of the image in bytes. When set to zero, the image was not obtained since a different image was being processed.
+●	Image Data: Data of the image in JPEG format. If this field is stored in a file to disk, it will be stored in a JPEG format in accordance with the JPEG group standards. The size of the field is variable (shown in field ImageSize).
+==============================================
+
+4.4.9.	CurrentFrame
+Obtains the current image.
+Request
+●	Type: 72
+●	Message Data:
+	Exposure Time: exposure time for required image, in microseconds. (4 bytes)
+Response
+●	Type: 136
+●	Message Data:
+	Image Size: Size of the image in bytes. In the case of a zero size, the image was not obtained. (4 bytes)
+	Image Data: Data of the image in JPEG format. If the field is stored in a file, it will create a JPEG file in accordance with the JPEG group standards. The size of the field is variable (as shown in field ImageSize). (Variable max 65000 bytes )
+==============================================
+
+4.5.	Confirmation messages
+4.5.1.	ACK
+Confirmation that the message has been received and interpreted correctly.
+●	Type: 192
+●	Message Data: No data field.
+4.5.2.	NAK
+Informs that the message has not been correctly received, interpreted or executed.
+●	Type: 193
+●	Message Data:
+●	Code: Identifier of the type of error occurred (1  byte): 
+	0 (Unknown message): The message has a correct format but the meaning is unknown.
+	1 (Bad format): The message has not been received correctly (bcc failure, missing bytes, etc.).
+	2 (Unknown error): The action required by the message has not been completed due to unknown reasons. For example, a faulty I/O card can reject an “Activate output” request.
+	3 (Bad parameters): Some of the message parameters are incorrect. The incorrect parameter's index will be specified in field “SubCode”.
+	4 (Can’t complete): The action has not been completed, for instance because the system is busy in the case of an image capture request when the system has not finished the previous capture.
+	5 (Incorrect Unit): The unit identifier in the message does not correspond to the unit to which the message has been sent.
+	6 (Incorrect version): The unit cannot interpret this version of the message.
+	10 (Bad auth.): The configuration system denies permission for the requested operation.
+
+●	SubCode: Additional information about the error. (1 byte)
+==============================================
+
+4.6.1.	Ping
+Requests an answer from the configuration system. Its aim is to check if there is a SmartLPR ® configuration system behind the configured IP address and port. No succesful Login is needed to obtain a response to this message.
+Request
+●	Type: 96
+●	Message Data:
+	Port: port where the response message has to be sent. (4 bytes)
+Response
+ACK/NAK
