@@ -207,31 +207,19 @@ namespace QuercusSimulator
                 // Get RealCam IP and Port based on UnitId
                 (string realCamIP, int realCamMainPort, int ReceivePort, int[] ExposureTimes) = JsonConfigManager.GetCameraInfoByUnitId(unitId);
                    Log.Information($"Camera IP: {realCamIP}, Port: {realCamMainPort}");
-                // Send status request before getting and saving images
-                //byte[] statusRequest = SendStatusRequest(unitId, Id);
-                //await SendRequestAsync(statusRequest, realCamIP, cameraSendPort);
 
-                //if (realCamIP != null && realCamMainPort != 0)
-                //{
-                //    cameraEndPoint = new IPEndPoint(IPAddress.Parse(realCamIP), realCamMainPort);
-                //    Log.Information($"Camera IP: {realCamIP}, Port: {realCamMainPort}");
-                //    await SendTriggerRequestAsync(cameraEndPoint, unitId, Id, TriggerId);
-                //}
-                //else
-                //{
-                //    Log.Error($"Invalid camera configuration for UnitId {unitId}");
-                //}
+                bool imageWasSaved = false;
+                if (ReceivePort == 0)
+                {
+                    imageWasSaved = await CurrentFrame.GetAndSaveHikImage(unitId, realCamIP, OutputDirectory);
 
+                }
+                else
+                {
+                    // Original UDP-based multi-exposure capture logic
+                     imageWasSaved = await CurrentFrame.GetAndSaveImages(unitId, realCamIP, OutputDirectory);
+                }
 
-                //IPEndPoint cameraEndPoint = new IPEndPoint(IPAddress.Parse(RealCamIP), RealCamMainPort);
-
-                //LPNResult LastLPNResult = await QuercusSimulator.LPRService.CaptureLPNAsync("10.0.0.111");
-                //int cameraReceivePort = 6050;
-                //string OutputDirectory = @"C:\LPR\EventImages";
-                //int[] exposureTimes = { 4000, 16000 };
-                //int[] ids = { 100, 200 };
-
-                bool imageWasSaved = await CurrentFrame.GetAndSaveImages(unitId, realCamIP, OutputDirectory);
                    Log.Information($"imageWasSaved: {imageWasSaved.ToString()}");
 
                 imageProcessingStopwatch.Stop();

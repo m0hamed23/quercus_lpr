@@ -6,7 +6,9 @@ using System.Net.Sockets;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats.Jpeg;
 namespace QuercusSimulator
 {
     public static class MessageBuilder
@@ -172,25 +174,120 @@ namespace QuercusSimulator
 
             return response;
         }
+        // public static byte[] CreateLPNImageResponse(byte[] request)
+        // {
+        //     Log.Information($"############# Creating Image Response: {DateTime.Now.ToString("HH:mm:ss.fff")}");
+
+        //     //string imagePath = @"D:\lp.jpg";
+        //     //string imagePath = @"C:\EventImages\lastimage.jpg";
+
+        //     // Extract the Unit ID (assuming it's at byte index 1)
+        //     uint unitId = BitConverter.ToUInt32(request, 1);
+
+        //     // Get RealCam IP and Port based on UnitId
+        //     //(string realCamIP, int realCamMainPort) = JsonConfigManager.GetCameraInfoByUnitId(unitId);
+        //     (string realCamIP, int realCamMainPort, int ReceivePort, int[] ExposureTimes) = JsonConfigManager.GetCameraInfoByUnitId(unitId);
+        //     // Extract the last octet of the IP address
+        //     string lastOctet = realCamIP.Split('.').Last();
+
+        //     // Construct the image file path using the last octet
+        //     //string imageFilePath = $"{ImagePath}_{lastOctet}.jpg";
+        //     // string imageFilePath = Path.Combine(ImagePath, $"lastimage_{lastOctet}.jpg");
+        //     // Get all files matching the pattern and select the most recent one
+        //     string imageFilePath = Directory.GetFiles(ImagePath, $"lastimage_{lastOctet}*")
+        //                                 .OrderByDescending(f => File.GetLastWriteTime(f))
+        //                                 .FirstOrDefault();
+
+        //     if (string.IsNullOrEmpty(imageFilePath))
+        //     {
+        //         throw new FileNotFoundException($"No image file found for camera {lastOctet}");
+        //     }
+        //     //string imageFilePath = $"{ImagePath}{realCamIP}.jpg";
+
+        //     byte[] imageData = File.ReadAllBytes(imageFilePath);
+        //     int imageSize = imageData.Length;
+
+
+        //     //int imageWidth = 1280;
+        //     //int imageHeight = 600;
+
+        //     // Define center coordinates
+        //     int centerX = ImageWidth / 2; // 640
+        //     int centerY = ImageHeight / 2; // 300
+
+        //     // Define ROI size (50% of the image size)
+        //     int roiWidth = (int)(ImageWidth * 0.5); // 640
+        //     int roiHeight = (int)(ImageHeight * 0.5); // 300
+
+        //     // Calculate ROI coordinates
+        //     ushort roiLeft = (ushort)(centerX - (roiWidth / 2)); // 320
+        //     ushort roiRight = (ushort)(centerX + (roiWidth / 2)); // 960
+        //     ushort roiTop = (ushort)(centerY - (roiHeight / 2)); // 150
+        //     ushort roiBottom = (ushort)(centerY + (roiHeight / 2)); // 450
+
+        //     //// Define ROI coordinates (example values)
+        //     //ushort roiTop = 100;
+        //     //ushort roiLeft = 200;
+        //     //ushort roiBottom = 150;
+        //     //ushort roiRight = 300;
+
+        //     // Calculate total response size
+        //     int totalSize = 1 + 4 + 4 + 2 + 2 + 4 + 8 + 4 + imageSize + 1 + 1;
+        //     byte[] response = new byte[totalSize];
+
+        //     // STX (Start of Text)
+        //     response[0] = 0x02;
+
+        //     // Unit ID (4 bytes) - Copy from request
+        //     Buffer.BlockCopy(request, 1, response, 1, 4);
+
+        //     // Size (4 bytes) - Total size of the message
+        //     BitConverter.GetBytes((uint)totalSize).CopyTo(response, 5);
+
+        //     // Type (2 bytes) - LPN Image Response (0x8700)
+        //     response[9] = 0x87;
+        //     response[10] = 0x00;
+
+        //     // Version (2 bytes) - Copy from request
+        //     Buffer.BlockCopy(request, 11, response, 11, 2);
+
+        //     // ID (4 bytes) - Copy from request
+        //     Buffer.BlockCopy(request, 13, response, 13, 4);
+
+        //     // ROI coordinates (8 bytes)
+        //     BitConverter.GetBytes(roiTop).CopyTo(response, 17);
+        //     BitConverter.GetBytes(roiLeft).CopyTo(response, 19);
+        //     BitConverter.GetBytes(roiBottom).CopyTo(response, 21);
+        //     BitConverter.GetBytes(roiRight).CopyTo(response, 23);
+
+        //     // Image Size (4 bytes)
+        //     BitConverter.GetBytes((uint)imageSize).CopyTo(response, 25);
+
+        //     // Image Data (variable)
+        //     Buffer.BlockCopy(imageData, 0, response, 29, imageSize);
+
+        //     // BCC (Block Check Character) - XOR from STX to the last byte before BCC
+        //     response[totalSize - 2] = CalculateXOR(response, 0, totalSize - 2);
+
+        //     // ETX (End of Text)
+        //     response[totalSize - 1] = 0x03;
+        //     Log.Information($"############# Sending Image to ZR: {DateTime.Now.ToString("HH:mm:ss.fff")}");
+
+        //     return response;
+        // }
         public static byte[] CreateLPNImageResponse(byte[] request)
         {
             Log.Information($"############# Creating Image Response: {DateTime.Now.ToString("HH:mm:ss.fff")}");
-
-            //string imagePath = @"D:\lp.jpg";
-            //string imagePath = @"C:\EventImages\lastimage.jpg";
 
             // Extract the Unit ID (assuming it's at byte index 1)
             uint unitId = BitConverter.ToUInt32(request, 1);
 
             // Get RealCam IP and Port based on UnitId
-            //(string realCamIP, int realCamMainPort) = JsonConfigManager.GetCameraInfoByUnitId(unitId);
             (string realCamIP, int realCamMainPort, int ReceivePort, int[] ExposureTimes) = JsonConfigManager.GetCameraInfoByUnitId(unitId);
+            
             // Extract the last octet of the IP address
             string lastOctet = realCamIP.Split('.').Last();
 
-            // Construct the image file path using the last octet
-            //string imageFilePath = $"{ImagePath}_{lastOctet}.jpg";
-            // string imageFilePath = Path.Combine(ImagePath, $"lastimage_{lastOctet}.jpg");
             // Get all files matching the pattern and select the most recent one
             string imageFilePath = Directory.GetFiles(ImagePath, $"lastimage_{lastOctet}*")
                                         .OrderByDescending(f => File.GetLastWriteTime(f))
@@ -200,34 +297,93 @@ namespace QuercusSimulator
             {
                 throw new FileNotFoundException($"No image file found for camera {lastOctet}");
             }
-            //string imageFilePath = $"{ImagePath}{realCamIP}.jpg";
 
-            byte[] imageData = File.ReadAllBytes(imageFilePath);
+            byte[] imageData;
+            
+            // Check if we need to resize the image
+            // if (ReceivePort == 0)
+            // {
+            //     using (var image = Image.Load(imageFilePath))
+            //     {
+            //         // Resize to 752x480
+            //         image.Mutate(x => x.Resize(new ResizeOptions
+            //         {
+            //             Size = new Size(1280, 700),
+            //             Mode = ResizeMode.Stretch // or use ResizeMode.Max to maintain aspect ratio
+            //         }));
+
+            //         // Save to memory stream
+            //         using (var ms = new MemoryStream())
+            //         {
+            //             image.Save(ms, new JpegEncoder());
+            //             imageData = ms.ToArray();
+            //         }
+            //     }
+            // }
+            if (ReceivePort == 0)
+            {
+                using (var image = Image.Load(imageFilePath))
+                {
+                    // First try with 1280x700
+                    image.Mutate(x => x.Resize(new ResizeOptions
+                    {
+                        Size = new Size(1280, 700),
+                        Mode = ResizeMode.Stretch
+                    }));
+
+                    // Try saving at original size
+                    using (var ms = new MemoryStream())
+                    {
+                        image.Save(ms, new JpegEncoder());
+                        byte[] tempImageData = ms.ToArray();
+                        
+                        // Check if size exceeds 50KB
+                        if (tempImageData.Length > 50 * 1024)
+                        {
+                            // If too large, resize to 752x480
+                            image.Mutate(x => x.Resize(new ResizeOptions
+                            {
+                                Size = new Size(752, 480),
+                                Mode = ResizeMode.Stretch
+                            }));
+                            
+                            // Save with new size
+                            ms.SetLength(0); // Clear the stream
+                            image.Save(ms, new JpegEncoder());
+                            imageData = ms.ToArray();
+                            
+                            Log.Information($"Image resized to 752x480. Final size: {imageData.Length / 1024.0:F2}KB");
+                        }
+                        else
+                        {
+                            // Use original 1280x700 size
+                            imageData = tempImageData;
+                            Log.Information($"Using original 1280x700 size. Final size: {imageData.Length / 1024.0:F2}KB");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Use original image if no resize needed
+                imageData = File.ReadAllBytes(imageFilePath);
+            }
+
             int imageSize = imageData.Length;
 
-
-            //int imageWidth = 1280;
-            //int imageHeight = 600;
-
             // Define center coordinates
-            int centerX = ImageWidth / 2; // 640
-            int centerY = ImageHeight / 2; // 300
+            int centerX = ImageWidth / 2;
+            int centerY = ImageHeight / 2;
 
             // Define ROI size (50% of the image size)
-            int roiWidth = (int)(ImageWidth * 0.5); // 640
-            int roiHeight = (int)(ImageHeight * 0.5); // 300
+            int roiWidth = (int)(ImageWidth * 0.5);
+            int roiHeight = (int)(ImageHeight * 0.5);
 
             // Calculate ROI coordinates
-            ushort roiLeft = (ushort)(centerX - (roiWidth / 2)); // 320
-            ushort roiRight = (ushort)(centerX + (roiWidth / 2)); // 960
-            ushort roiTop = (ushort)(centerY - (roiHeight / 2)); // 150
-            ushort roiBottom = (ushort)(centerY + (roiHeight / 2)); // 450
-
-            //// Define ROI coordinates (example values)
-            //ushort roiTop = 100;
-            //ushort roiLeft = 200;
-            //ushort roiBottom = 150;
-            //ushort roiRight = 300;
+            ushort roiLeft = (ushort)(centerX - (roiWidth / 2));
+            ushort roiRight = (ushort)(centerX + (roiWidth / 2));
+            ushort roiTop = (ushort)(centerY - (roiHeight / 2));
+            ushort roiBottom = (ushort)(centerY + (roiHeight / 2));
 
             // Calculate total response size
             int totalSize = 1 + 4 + 4 + 2 + 2 + 4 + 8 + 4 + imageSize + 1 + 1;

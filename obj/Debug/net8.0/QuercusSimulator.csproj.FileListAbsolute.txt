@@ -18,3 +18,4 @@ C:\LPR\QuercusSimulator\QuercusSimulator\obj\Debug\net8.0\refint\QuercusSimulato
 C:\LPR\QuercusSimulator\QuercusSimulator\obj\Debug\net8.0\QuercusSimulator.pdb
 C:\LPR\QuercusSimulator\QuercusSimulator\obj\Debug\net8.0\QuercusSimulator.genruntimeconfig.cache
 C:\LPR\QuercusSimulator\QuercusSimulator\obj\Debug\net8.0\ref\QuercusSimulator.dll
+c:\LPR\QuercusSimulator\QuercusSimulator\obj\Debug\net8.0\QuercusSimulator.sourcelink.json

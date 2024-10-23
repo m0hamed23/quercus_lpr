@@ -6,7 +6,8 @@ using System.Net;
 using static QuercusSimulator.MessageBuilder;
 using Serilog;
 using QuercusSimulator;
-
+using System.Net.Http.Headers;
+using System.Text;
 public static class CurrentFrame
 {
     private const int MaxUdpSize = 65507;
@@ -206,7 +207,81 @@ public static class CurrentFrame
         }
         return imageSaved;
     }
+public static async Task<bool> GetAndSaveHikImage(
+    uint cameraId,
+    string cameraIP,
+    string outputDirectory)
+{
+    Log.Information("Hikvision Camera Image Capture starting...");
+    // Stopwatch stopwatch = new Stopwatch();
+    // stopwatch.Start();
+    bool imageSaved = false;
 
+    try
+    {
+        Directory.CreateDirectory(outputDirectory);
+
+        // Create directories for all images if enabled
+        // string lastOctet = cameraIP.Split('.').Last();
+        // string allImagesDir = Path.Combine(outputDirectory, "All_Images");
+        // string cameraImagesDir = Path.Combine(allImagesDir, lastOctet);
+        // if (SaveAllImages == 1)
+        // {
+        //     Directory.CreateDirectory(allImagesDir);
+        //     Directory.CreateDirectory(cameraImagesDir);
+        // }
+
+        using (var client = new HttpClient())
+        {
+            string snapshotUrl = $"http://{cameraIP}/ISAPI/Streaming/channels/1/picture";
+            string authString = $"admin:Admin1234";
+            string authStringEncoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authStringEncoded);
+
+            using (var response = await client.GetAsync(snapshotUrl))
+            {
+                response.EnsureSuccessStatusCode();
+                byte[] imageData = await response.Content.ReadAsByteArrayAsync();
+                DateTime currentTime = DateTime.Now;
+                // double brightness = await CalculateImageBrightness(imageData);
+                double brightness = 0.0;
+
+
+                // Save main image
+                string outputPath = await SaveImage(
+                    imageData,
+                    currentTime.ToString("yyyyMMdd_HHmmss"),
+                    0,  // No exposure time for HTTP snapshot
+                    brightness,
+                    cameraId,
+                    cameraIP,
+                    outputDirectory,
+                    false);
+
+                Log.Information($"Image saved successfully at: {outputPath}");
+                Log.Information($"Image brightness: {brightness:F2}");
+                imageSaved = true;
+            }
+        }
+    }
+    catch (HttpRequestException ex)
+    {
+        Log.Error($"HTTP request failed: {ex.Message}");
+        Log.Error($"Stack trace: {ex.StackTrace}");
+    }
+    catch (Exception ex)
+    {
+        Log.Error($"An unexpected error occurred: {ex.Message}");
+        Log.Error($"Stack trace: {ex.StackTrace}");
+    }
+    finally
+    {
+        // stopwatch.Stop();
+        // Log.Information($"Total time taken: {stopwatch.Elapsed}");
+    }
+
+    return imageSaved;
+}
     private static async Task<byte[]> ReceiveCurrentFrameResponseAsyncWithTimeout(UdpClient udpClient, CancellationToken cancellationToken)
     {
         try
@@ -278,6 +353,7 @@ public static class CurrentFrame
             {
                 fileName = $"{timestamp}_{lastOctet}_{exposureTime}_{brightness:F2}.jpg";
             }
+            
             string outputPath = Path.Combine(OutputDirectory, fileName);
             await image.SaveAsJpegAsync(outputPath);
             return outputPath;
