@@ -320,7 +320,7 @@ namespace QuercusSimulator
             //         }
             //     }
             // }
-            if (ReceivePort == 0)
+            if (ReceivePort == 0 || ReceivePort == 1 ||ReceivePort == 2 )
             {
                 using (var image = Image.Load(imageFilePath))
                 {
