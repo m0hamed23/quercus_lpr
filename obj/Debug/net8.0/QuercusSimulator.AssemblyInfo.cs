@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("QuercusSimulator")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f0025cfe99c3e8441ea134009807bdf0042a3a64")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7a528bcd91e162a191aaf9b53a10f668a0f9d5a1")]
 [assembly: System.Reflection.AssemblyProductAttribute("QuercusSimulator")]
 [assembly: System.Reflection.AssemblyTitleAttribute("QuercusSimulator")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -214,6 +214,16 @@ namespace QuercusSimulator
                     imageWasSaved = await CurrentFrame.GetAndSaveHikImage(unitId, realCamIP, OutputDirectory);
 
                 }
+                else if (ReceivePort == 1)
+                {
+                    imageWasSaved = await CurrentFrame.GetAndSaveAxisImage(unitId, realCamIP, OutputDirectory);
+
+                }
+                else if (ReceivePort == 2)
+                {
+                    imageWasSaved = await CurrentFrame.GetAndSaveHoneywellImage(unitId, realCamIP, OutputDirectory);
+
+                }
                 else
                 {
                     // Original UDP-based multi-exposure capture logic

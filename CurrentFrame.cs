@@ -8,6 +8,7 @@ using Serilog;
 using QuercusSimulator;
 using System.Net.Http.Headers;
 using System.Text;
+
 public static class CurrentFrame
 {
     private const int MaxUdpSize = 65507;
@@ -278,6 +279,126 @@ public static async Task<bool> GetAndSaveHikImage(
     {
         // stopwatch.Stop();
         // Log.Information($"Total time taken: {stopwatch.Elapsed}");
+    }
+
+    return imageSaved;
+}
+    
+public static async Task<bool> GetAndSaveAxisImage(
+    uint cameraId,
+    string cameraIP,
+    string outputDirectory)
+{
+    Log.Information("Axis Camera Image Capture starting...");
+    bool imageSaved = false;
+
+    try
+    {
+        Directory.CreateDirectory(outputDirectory);
+
+        using (var handler = new HttpClientHandler())
+        {
+            // Configure handler for digest authentication
+            handler.Credentials = new NetworkCredential("root", "admin");
+            handler.PreAuthenticate = true;
+            handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+
+            using (var client = new HttpClient(handler))
+            {
+                string snapshotUrl = $"http://{cameraIP}/jpg/image.jpg?camera=1&resolution=1920x1080";
+
+                using (var response = await client.GetAsync(snapshotUrl))
+                {
+                    response.EnsureSuccessStatusCode();
+                    byte[] imageData = await response.Content.ReadAsByteArrayAsync();
+                    DateTime currentTime = DateTime.Now;
+                    // Initialize brightness to 0.0 as per the Hikvision example
+                    double brightness = 0.0;
+
+                    // Save main image using the same SaveImage method as Hikvision
+                    string outputPath = await SaveImage(
+                        imageData,
+                        currentTime.ToString("yyyyMMdd_HHmmss"),
+                        0,  // No exposure time for HTTP snapshot
+                        brightness,
+                        cameraId,
+                        cameraIP,
+                        outputDirectory,
+                        false);
+
+                    Log.Information($"Image saved successfully at: {outputPath}");
+                    Log.Information($"Image brightness: {brightness:F2}");
+                    imageSaved = true;
+                }
+            }
+        }
+    }
+    catch (HttpRequestException ex)
+    {
+        Log.Error($"HTTP request failed: {ex.Message}");
+        Log.Error($"Stack trace: {ex.StackTrace}");
+    }
+    catch (Exception ex)
+    {
+        Log.Error($"An unexpected error occurred: {ex.Message}");
+        Log.Error($"Stack trace: {ex.StackTrace}");
+    }
+
+    return imageSaved;
+}
+    
+    public static async Task<bool> GetAndSaveHoneywellImage(
+    uint cameraId,
+    string cameraIP,
+    string outputDirectory)
+{
+    Log.Information("Honeywell Camera Image Capture starting...");
+    bool imageSaved = false;
+
+    try
+    {
+        Directory.CreateDirectory(outputDirectory);
+
+        using (var client = new HttpClient())
+        {
+            string snapshotUrl = $"http://{cameraIP}/onvifsnapshot/media_service/snapshot?channel=1&subtype=0";
+            string authString = $"admin:P@ssw0rd";
+            string authStringEncoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authStringEncoded);
+
+            using (var response = await client.GetAsync(snapshotUrl))
+            {
+                response.EnsureSuccessStatusCode();
+                byte[] imageData = await response.Content.ReadAsByteArrayAsync();
+                DateTime currentTime = DateTime.Now;
+                double brightness = 0.0;
+
+                // Save main image
+                string outputPath = await SaveImage(
+                    imageData,
+                    currentTime.ToString("yyyyMMdd_HHmmss"),
+                    0,  // No exposure time for HTTP snapshot
+                    brightness,
+                    cameraId,
+                    cameraIP,
+                    outputDirectory,
+                    false);
+
+                Log.Information($"Image saved successfully at: {outputPath}");
+                Log.Information($"Image brightness: {brightness:F2}");
+                imageSaved = true;
+            }
+        }
+    }
+    catch (HttpRequestException ex)
+    {
+        Log.Error($"HTTP request failed: {ex.Message}");
+        Log.Error($"Stack trace: {ex.StackTrace}");
+    }
+    catch (Exception ex)
+    {
+        Log.Error($"An unexpected error occurred: {ex.Message}");
+        Log.Error($"Stack trace: {ex.StackTrace}");
     }
 
     return imageSaved;
